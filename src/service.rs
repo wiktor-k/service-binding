@@ -100,7 +100,11 @@ impl<'a> TryFrom<Binding<'a>> for Listener {
 
                 Ok(unsafe { UnixListener::from_raw_fd(descriptor) }.into())
             }
-            Binding::FilePath(path) => Ok(UnixListener::bind(path)?.into()),
+            Binding::FilePath(path) => {
+                // ignore errors if the file does not exist
+                let _ = std::fs::remove_file(path);
+                Ok(UnixListener::bind(path)?.into())
+            }
             Binding::Socket(socket) => Ok(std::net::TcpListener::bind(&socket)?.into()),
         }
     }
@@ -166,6 +170,20 @@ mod tests {
             "unknown://test".try_into() as Result<Binding, _>,
             Err(Error)
         ));
+        Ok(())
+    }
+
+    #[test]
+    fn listen_on_socket_cleans_the_socket_file() -> Result<(), Error> {
+        let dir = std::env::temp_dir().join("temp-socket");
+        let binding = Binding::FilePath(&dir.to_str().unwrap());
+        let listener: Listener = binding.try_into()?;
+        drop(listener);
+        // create a second listener from the same path
+        let dir = std::env::temp_dir().join("temp-socket");
+        let binding = Binding::FilePath(&dir.to_str().unwrap());
+        let listener: Listener = binding.try_into()?;
+        drop(listener);
         Ok(())
     }
 }
