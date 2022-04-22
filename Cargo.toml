@@ -1,0 +1,15 @@
+[package]
+name = "service-binding"
+version = "0.1.0"
+edition = "2021"
+authors = ["Wiktor Kwapisiewicz <wiktor@metacode.biz>"]
+description = "Automates parsing and binding to TCP and Unix sockets"
+repository = "https://github.com/wiktor-k/service-binding"
+license-file = "LICENSE"
+keywords = ["sockets", "parsing"]
+categories = ["parsing"]
+exclude = [".github"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
