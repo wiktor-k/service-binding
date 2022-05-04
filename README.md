@@ -7,7 +7,9 @@ This crate automates parsing and binding to TCP and Unix sockets.
 
 By design this crate has no dependencies other than what is in `std`.
 
-## Example
+## Examples
+
+### Simple parsing
 
 ```rust
 use service_binding::Listener;
@@ -23,6 +25,43 @@ match listener {
     Listener::Tcp(listener) => {
         // bind to a TCP socket
     }
+}
+```
+
+### Web server
+
+The following example uses `clap` and `actix-web` and makes it
+possible to run the server using any combination of Unix domain
+sockets (including systemd activation) and regular TCP socket bound to
+a TCP port:
+
+```rust,no_run
+use actix_web::{web, App, HttpServer, Responder};
+use clap::Parser;
+use service_binding::Listener;
+
+#[derive(Parser, Debug)]
+struct Args {
+    #[clap(env = "HOST", short = 'H', long, default_value = "tcp://127.0.0.1:8080")]
+    host: String,
+}
+
+async fn greet() -> impl Responder {
+    "Hello!"
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    let args = Args::parse();
+
+    let server = HttpServer::new(move || {
+        App::new().route("/", web::get().to(greet))
+    });
+
+    match args.host.parse()? {
+        Listener::Unix(listener) => server.listen_uds(listener)?,
+        Listener::Tcp(listener) => server.listen(listener)?,
+    }.run().await
 }
 ```
 

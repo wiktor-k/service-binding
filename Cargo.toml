@@ -10,6 +10,6 @@ keywords = ["sockets", "parsing"]
 categories = ["parsing"]
 exclude = [".github"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
+[dev-dependencies]
+actix-web = "4"
+clap = { version = "3.1", features = ["derive", "env"] }
