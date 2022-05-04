@@ -33,3 +33,26 @@ argument to be parsed is `fd://` the `Listener` object returned will
 be a `Unix` variant containing the listener provided by systemd.
 
 [Socket Activation]: https://0pointer.de/blog/projects/socket-activation.html
+
+For example the following file defines a socket unit:
+`~/.config/systemd/user/app.socket`:
+
+```ini
+[Socket]
+ListenStream=%t/app.sock
+
+[Install]
+WantedBy=sockets.target
+```
+
+When enabled it will create a new socket file in `$XDG_RUNTIME_DIR`
+directory. When this socket is connected to systemd will start the
+service; `fd://` reads the correct systemd environment variable and
+returns the Unix domain socket.
+
+The service unit file `~/.config/systemd/user/app.service`:
+
+```ini
+[Service]
+ExecStart=/usr/bin/app -H fd://
+```
