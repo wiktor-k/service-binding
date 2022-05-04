@@ -5,11 +5,11 @@ edition = "2021"
 authors = ["Wiktor Kwapisiewicz <wiktor@metacode.biz>"]
 description = "Automates parsing and binding to TCP and Unix sockets"
 repository = "https://github.com/wiktor-k/service-binding"
-license-file = "LICENSE"
+license = "MIT OR Apache-2.0"
 keywords = ["sockets", "parsing"]
 categories = ["parsing"]
 exclude = [".github"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
+[dev-dependencies]
+actix-web = "4"
+clap = { version = "3.1", features = ["derive", "env"] }
