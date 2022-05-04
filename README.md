@@ -16,7 +16,7 @@ use service_binding::Listener;
 
 let host = "tcp://127.0.0.1:8012"; // or "unix:///tmp/socket"
 
-let listener: Listener = host.parse().unwrap();
+let listener = host.parse().unwrap();
 
 match listener {
     Listener::Unix(listener) => {
@@ -43,7 +43,7 @@ use service_binding::Listener;
 #[derive(Parser, Debug)]
 struct Args {
     #[clap(env = "HOST", short = 'H', long, default_value = "tcp://127.0.0.1:8080")]
-    host: String,
+    host: Listener,
 }
 
 async fn greet() -> impl Responder {
@@ -52,13 +52,11 @@ async fn greet() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let args = Args::parse();
-
     let server = HttpServer::new(move || {
         App::new().route("/", web::get().to(greet))
     });
 
-    match args.host.parse()? {
+    match Args::parse().host {
         Listener::Unix(listener) => server.listen_uds(listener)?,
         Listener::Tcp(listener) => server.listen(listener)?,
     }.run().await
