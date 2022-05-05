@@ -1,6 +1,7 @@
 use std::net::SocketAddr;
 use std::net::TcpListener;
 use std::os::unix::net::UnixListener;
+use super::Error;
 
 #[derive(Debug, PartialEq)]
 pub enum Binding<'a> {
@@ -34,29 +35,6 @@ impl From<TcpListener> for Listener {
         Listener::Tcp(listener)
     }
 }
-
-#[derive(Debug)]
-pub struct Error;
-
-impl From<std::io::Error> for Error {
-    fn from(_: std::io::Error) -> Self {
-        Error
-    }
-}
-
-impl From<std::net::AddrParseError> for Error {
-    fn from(_: std::net::AddrParseError) -> Self {
-        Error
-    }
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl std::error::Error for Error {}
 
 impl<'a> std::convert::TryFrom<&'a str> for Binding<'a> {
     type Error = Error;
