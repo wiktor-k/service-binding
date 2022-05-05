@@ -1,7 +1,7 @@
+use super::Error;
 use std::net::SocketAddr;
 use std::net::TcpListener;
 use std::os::unix::net::UnixListener;
-use super::Error;
 
 #[derive(Debug, PartialEq)]
 pub enum Binding<'a> {
