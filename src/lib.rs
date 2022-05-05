@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![deny(missing_debug_implementations)]
+#![deny(missing_docs)]
 
 mod endpoint;
 mod service;
@@ -8,6 +9,7 @@ pub use endpoint::Endpoint;
 pub use service::Binding;
 pub use service::Listener;
 
+/// Errors while processing service listeners or endpoints.
 #[derive(Debug)]
 pub struct Error;
 

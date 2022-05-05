@@ -1,8 +1,24 @@
 use super::Error;
 
+/// Client endpoint.
+///
+/// Encodes whether the client should connect via HTTP/TCP endpoint
+/// (including secure HTTPS) or a Unix domain socket.
+///
+/// # Examples
+///
+/// ```
+/// # use service_binding::Endpoint;
+/// let endpoint: Endpoint = "https://localhost".parse().unwrap();
+/// assert_eq!(endpoint, Endpoint::Http("https://localhost".into()));
+/// ```
 #[derive(Debug, PartialEq)]
 pub enum Endpoint {
+    /// Direct HTTP(S) URL.
     Http(String),
+
+    /// Unix domain socket.
+    /// The second argument encodes optional path.
     Unix(String, Option<String>),
 }
 

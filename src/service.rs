@@ -3,16 +3,52 @@ use std::net::SocketAddr;
 use std::net::TcpListener;
 use std::os::unix::net::UnixListener;
 
+/// Service binding.
+///
+/// Indicates which mechanism should the service take to bind its
+/// listener to.
+///
+/// # Examples
+///
+/// ```
+/// # use service_binding::Binding;
+/// let binding = "tcp://127.0.0.1:8080".try_into().unwrap();
+/// assert_eq!(Binding::Socket(([127, 0, 0, 1], 8080).into()), binding);
+/// ```
 #[derive(Debug, PartialEq)]
 pub enum Binding<'a> {
+    /// The service should be bound to this explicit, opened file
+    /// descriptor.  This mechanism is used by systemd socket
+    /// activation.
     FileDescriptor(i32),
+
+    /// The service should be bound to a Unix domain socket file under
+    /// specified path.
     FilePath(&'a str),
+
+    /// The service should be bound to a TCP socket with given
+    /// parameters.
     Socket(SocketAddr),
 }
 
+/// Opened service listener.
+///
+/// This structure contains an already open listener. Note that the
+/// listeners are set to non-blocking mode.
+///
+/// # Examples
+///
+/// ```
+/// # use service_binding::Listener;
+/// let listener: Listener = "unix:///tmp/socket".parse().unwrap();
+/// assert!(matches!(listener, Listener::Unix(_)));
+/// ```
 #[derive(Debug)]
 pub enum Listener {
+    /// Listener for a Unix domain socket.
     Unix(UnixListener),
+
+    /// Listener for a TCP socket.
     Tcp(TcpListener),
 }
 
