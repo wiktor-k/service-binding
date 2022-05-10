@@ -2,6 +2,7 @@ use super::Error;
 use std::net::SocketAddr;
 use std::net::TcpListener;
 use std::os::unix::net::UnixListener;
+use std::path::PathBuf;
 
 /// Service binding.
 ///
@@ -16,7 +17,7 @@ use std::os::unix::net::UnixListener;
 /// assert_eq!(Binding::Socket(([127, 0, 0, 1], 8080).into()), binding);
 /// ```
 #[derive(Debug, PartialEq)]
-pub enum Binding<'a> {
+pub enum Binding {
     /// The service should be bound to this explicit, opened file
     /// descriptor.  This mechanism is used by systemd socket
     /// activation.
@@ -24,7 +25,7 @@ pub enum Binding<'a> {
 
     /// The service should be bound to a Unix domain socket file under
     /// specified path.
-    FilePath(&'a str),
+    FilePath(PathBuf),
 
     /// The service should be bound to a TCP socket with given
     /// parameters.
@@ -72,7 +73,7 @@ impl From<TcpListener> for Listener {
     }
 }
 
-impl<'a> std::convert::TryFrom<&'a str> for Binding<'a> {
+impl<'a> std::convert::TryFrom<&'a str> for Binding {
     type Error = Error;
 
     fn try_from(s: &'a str) -> Result<Self, Self::Error> {
@@ -90,7 +91,7 @@ impl<'a> std::convert::TryFrom<&'a str> for Binding<'a> {
                 Err(Error)
             }
         } else if let Some(file) = s.strip_prefix("unix://") {
-            Ok(Binding::FilePath(file))
+            Ok(Binding::FilePath(file.into()))
         } else if let Some(addr) = s.strip_prefix("tcp://") {
             let addr: SocketAddr = addr.parse()?;
             Ok(Binding::Socket(addr))
@@ -100,7 +101,7 @@ impl<'a> std::convert::TryFrom<&'a str> for Binding<'a> {
     }
 }
 
-impl<'a> TryFrom<Binding<'a>> for Listener {
+impl TryFrom<Binding> for Listener {
     type Error = Error;
 
     fn try_from(value: Binding) -> Result<Self, Self::Error> {
@@ -116,7 +117,7 @@ impl<'a> TryFrom<Binding<'a>> for Listener {
             }
             Binding::FilePath(path) => {
                 // ignore errors if the file does not exist
-                let _ = std::fs::remove_file(path);
+                let _ = std::fs::remove_file(&path);
                 Ok(UnixListener::bind(path)?.into())
             }
             Binding::Socket(socket) => Ok(std::net::TcpListener::bind(&socket)?.into()),
@@ -190,12 +191,12 @@ mod tests {
     #[test]
     fn listen_on_socket_cleans_the_socket_file() -> Result<(), Error> {
         let dir = std::env::temp_dir().join("temp-socket");
-        let binding = Binding::FilePath(&dir.to_str().unwrap());
+        let binding = Binding::FilePath(dir);
         let listener: Listener = binding.try_into()?;
         drop(listener);
         // create a second listener from the same path
         let dir = std::env::temp_dir().join("temp-socket");
-        let binding = Binding::FilePath(&dir.to_str().unwrap());
+        let binding = Binding::FilePath(dir);
         let listener: Listener = binding.try_into()?;
         drop(listener);
         Ok(())
