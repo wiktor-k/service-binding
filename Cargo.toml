@@ -6,7 +6,7 @@ authors = ["Wiktor Kwapisiewicz <wiktor@metacode.biz>"]
 description = "Automates parsing and binding to TCP and Unix sockets"
 repository = "https://github.com/wiktor-k/service-binding"
 license = "MIT OR Apache-2.0"
-keywords = ["sockets", "parsing", "systemd", "listenfd", "unix", "binding"]
+keywords = ["sockets", "systemd", "listenfd", "unix", "binding"]
 categories = ["parsing"]
 exclude = [".github"]
 
