@@ -12,13 +12,13 @@ By design this crate has no dependencies other than what is in `std`.
 ### Simple parsing
 
 ```rust
-use service_binding::Listener;
+use service_binding::{Binding, Listener};
 
 let host = "tcp://127.0.0.1:8012"; // or "unix:///tmp/socket"
 
-let listener = host.parse().unwrap();
+let binding: Binding = host.parse().unwrap();
 
-match listener {
+match binding.try_into().unwrap() {
     Listener::Unix(listener) => {
         // bind to a unix domain socket
     },
@@ -38,12 +38,12 @@ a TCP port:
 ```rust,no_run
 use actix_web::{web, App, HttpServer, Responder};
 use clap::Parser;
-use service_binding::Listener;
+use service_binding::{Binding, Listener};
 
 #[derive(Parser, Debug)]
 struct Args {
     #[clap(env = "HOST", short = 'H', long, default_value = "tcp://127.0.0.1:8080")]
-    host: Listener,
+    host: Binding,
 }
 
 async fn greet() -> impl Responder {
@@ -56,7 +56,7 @@ async fn main() -> std::io::Result<()> {
         App::new().route("/", web::get().to(greet))
     });
 
-    match Args::parse().host {
+    match Args::parse().host.try_into()? {
         Listener::Unix(listener) => server.listen_uds(listener)?,
         Listener::Tcp(listener) => server.listen(listener)?,
     }.run().await

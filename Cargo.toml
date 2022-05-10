@@ -1,12 +1,12 @@
 [package]
 name = "service-binding"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Wiktor Kwapisiewicz <wiktor@metacode.biz>"]
 description = "Automates parsing and binding to TCP and Unix sockets"
 repository = "https://github.com/wiktor-k/service-binding"
 license = "MIT OR Apache-2.0"
-keywords = ["sockets", "parsing"]
+keywords = ["sockets", "parsing", "systemd", "listenfd", "unix", "binding"]
 categories = ["parsing"]
 exclude = [".github"]
 
