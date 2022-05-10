@@ -55,8 +55,11 @@ pub enum Listener {
 
 impl From<UnixListener> for Listener {
     fn from(listener: UnixListener) -> Self {
-        while listener.set_nonblocking(true).is_err() {
+        while let Err(e) = listener.set_nonblocking(true) {
             // retry WouldBlock errors
+            if e.kind() != std::io::ErrorKind::WouldBlock {
+                break;
+            }
         }
 
         Listener::Unix(listener)
@@ -65,8 +68,11 @@ impl From<UnixListener> for Listener {
 
 impl From<TcpListener> for Listener {
     fn from(listener: TcpListener) -> Self {
-        while listener.set_nonblocking(true).is_err() {
+        while let Err(e) = listener.set_nonblocking(true) {
             // retry WouldBlock errors
+            if e.kind() != std::io::ErrorKind::WouldBlock {
+                break;
+            }
         }
 
         Listener::Tcp(listener)
