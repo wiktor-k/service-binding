@@ -40,8 +40,9 @@ pub enum Binding {
 /// # Examples
 ///
 /// ```
-/// # use service_binding::Listener;
-/// let listener: Listener = "unix:///tmp/socket".parse().unwrap();
+/// # use service_binding::{Binding, Listener};
+/// let binding: Binding = "unix:///tmp/socket".parse().unwrap();
+/// let listener = binding.try_into().unwrap();
 /// assert!(matches!(listener, Listener::Unix(_)));
 /// ```
 #[derive(Debug)]
@@ -107,16 +108,20 @@ impl<'a> std::convert::TryFrom<&'a str> for Binding {
     }
 }
 
+impl std::str::FromStr for Binding {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.try_into()
+    }
+}
+
 impl TryFrom<Binding> for Listener {
-    type Error = Error;
+    type Error = std::io::Error;
 
     fn try_from(value: Binding) -> Result<Self, Self::Error> {
         match value {
             Binding::FileDescriptor(descriptor) => {
-                if descriptor != 3 {
-                    return Err(Error);
-                }
-
                 use std::os::unix::io::FromRawFd;
 
                 Ok(unsafe { UnixListener::from_raw_fd(descriptor) }.into())
@@ -128,24 +133,6 @@ impl TryFrom<Binding> for Listener {
             }
             Binding::Socket(socket) => Ok(std::net::TcpListener::bind(&socket)?.into()),
         }
-    }
-}
-
-impl<'a> std::convert::TryFrom<&'a str> for Listener {
-    type Error = Error;
-
-    fn try_from(s: &'a str) -> Result<Self, Self::Error> {
-        let binding: Binding = s.try_into()?;
-        binding.try_into()
-    }
-}
-
-impl std::str::FromStr for Listener {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let binding: Binding = s.try_into()?;
-        binding.try_into()
     }
 }
 
