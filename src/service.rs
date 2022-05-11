@@ -140,7 +140,10 @@ impl TryFrom<Binding> for Listener {
 mod tests {
     use super::*;
 
+    use serial_test::serial;
+
     #[test]
+    #[serial]
     fn parse_fd() -> Result<(), Error> {
         std::env::set_var("LISTEN_FDS", "1");
         let binding = "fd://".try_into()?;
@@ -149,6 +152,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn parse_fd_fail() -> Result<(), Error> {
         std::env::remove_var("LISTEN_FDS");
         assert!(matches!(
