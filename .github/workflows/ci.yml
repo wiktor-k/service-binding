@@ -116,8 +116,21 @@ jobs:
 
   lints:
     name: Clippy lints
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
     steps:
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: clippy
       - uses: actions/checkout@v2
       - name: Check for lints
         run: cargo clippy -- -D warnings
