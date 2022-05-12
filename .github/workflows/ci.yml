@@ -26,11 +26,93 @@ jobs:
 
   tests:
     name: Unit tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+        - os: ubuntu-latest
+          toolchain: stable
+          target: i686-unknown-linux-gnu
+        - os: ubuntu-latest
+          toolchain: stable
+          target: x86_64-unknown-linux-gnu
+        - os: ubuntu-latest
+          toolchain: beta
+          target: i686-unknown-linux-gnu
+        - os: ubuntu-latest
+          toolchain: beta
+          target: x86_64-unknown-linux-gnu
+        - os: ubuntu-latest
+          toolchain: nightly
+          target: i686-unknown-linux-gnu
+        - os: ubuntu-latest
+          toolchain: nightly
+          target: x86_64-unknown-linux-gnu
+        - os: macos-latest
+          toolchain: stable
+          target: x86_64-apple-darwin
+        - os: macos-latest
+          toolchain: stable
+          target: x86_64-apple-ios
+        - os: macos-latest
+          toolchain: beta
+          target: x86_64-apple-darwin
+        - os: macos-latest
+          toolchain: beta
+          target: x86_64-apple-ios
+        - os: macos-latest
+          toolchain: nightly
+          target: x86_64-apple-darwin
+        - os: macos-latest
+          toolchain: nightly
+          target: x86_64-apple-ios
+        - os: windows-latest
+          toolchain: stable-msvc
+          target: i686-pc-windows-msvc
+        - os: windows-latest
+          toolchain: stable-msvc
+          target: x86_64-pc-windows-msvc
+        - os: windows-latest
+          toolchain: beta-msvc
+          target: i686-pc-windows-msvc
+        - os: windows-latest
+          toolchain: beta-msvc
+          target: x86_64-pc-windows-msvc
+        - os: windows-latest
+          toolchain: nightly-msvc
+          target: i686-pc-windows-msvc
+        - os: windows-latest
+          toolchain: nightly-msvc
+          target: x86_64-pc-windows-msvc
+        - os: windows-latest
+          toolchain: stable-gnu
+          target: i686-pc-windows-gnu
+        - os: windows-latest
+          toolchain: stable-gnu
+          target: x86_64-pc-windows-gnu
+        - os: windows-latest
+          toolchain: beta-gnu
+          target: i686-pc-windows-gnu
+        - os: windows-latest
+          toolchain: beta-gnu
+          target: x86_64-pc-windows-gnu
+        - os: windows-latest
+          toolchain: nightly-gnu
+          target: i686-pc-windows-gnu
+        - os: windows-latest
+          toolchain: nightly-gnu
+          target: x86_64-pc-windows-gnu
     steps:
+      - uses: actions-rs/toolchain@v1
+        name: Install toolchain
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          target: ${{ matrix.target }}
+          override: true
       - uses: actions/checkout@v2
       - name: Build and test
-        run: cargo build --verbose --all && cargo test --verbose --all
+        run: cargo build --verbose --all && cargo test --verbose --all -- --nocapture
 
   lints:
     name: Clippy lints
