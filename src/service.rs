@@ -1,6 +1,7 @@
 use super::Error;
 use std::net::SocketAddr;
 use std::net::TcpListener;
+#[cfg(unix)]
 use std::os::unix::net::UnixListener;
 use std::path::PathBuf;
 
@@ -41,19 +42,21 @@ pub enum Binding {
 ///
 /// ```
 /// # use service_binding::{Binding, Listener};
-/// let binding: Binding = "unix:///tmp/socket".parse().unwrap();
+/// let binding: Binding = "tcp://127.0.0.1:8080".parse().unwrap();
 /// let listener = binding.try_into().unwrap();
-/// assert!(matches!(listener, Listener::Unix(_)));
+/// assert!(matches!(listener, Listener::Tcp(_)));
 /// ```
 #[derive(Debug)]
 pub enum Listener {
     /// Listener for a Unix domain socket.
+    #[cfg(unix)]
     Unix(UnixListener),
 
     /// Listener for a TCP socket.
     Tcp(TcpListener),
 }
 
+#[cfg(unix)]
 impl From<UnixListener> for Listener {
     fn from(listener: UnixListener) -> Self {
         while let Err(e) = listener.set_nonblocking(true) {
@@ -121,17 +124,21 @@ impl TryFrom<Binding> for Listener {
 
     fn try_from(value: Binding) -> Result<Self, Self::Error> {
         match value {
+            #[cfg(unix)]
             Binding::FileDescriptor(descriptor) => {
                 use std::os::unix::io::FromRawFd;
 
                 Ok(unsafe { UnixListener::from_raw_fd(descriptor) }.into())
             }
+            #[cfg(unix)]
             Binding::FilePath(path) => {
                 // ignore errors if the file does not exist
                 let _ = std::fs::remove_file(&path);
                 Ok(UnixListener::bind(path)?.into())
             }
             Binding::Socket(socket) => Ok(std::net::TcpListener::bind(&socket)?.into()),
+            #[cfg(not(unix))]
+            _ => Err(std::io::Error::new(std::io::ErrorKind::Other, Error)),
         }
     }
 }
@@ -186,6 +193,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn listen_on_socket_cleans_the_socket_file() -> Result<(), Error> {
         let dir = std::env::temp_dir().join("temp-socket");
         let binding = Binding::FilePath(dir);
