@@ -19,6 +19,7 @@ let host = "tcp://127.0.0.1:8012"; // or "unix:///tmp/socket"
 let binding: Binding = host.parse().unwrap();
 
 match binding.try_into().unwrap() {
+    #[cfg(unix)]
     Listener::Unix(listener) => {
         // bind to a unix domain socket
     },
@@ -57,6 +58,7 @@ async fn main() -> std::io::Result<()> {
     });
 
     match Args::parse().host.try_into()? {
+        #[cfg(unix)]
         Listener::Unix(listener) => server.listen_uds(listener)?,
         Listener::Tcp(listener) => server.listen(listener)?,
     }.run().await
