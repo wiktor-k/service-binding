@@ -186,6 +186,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn parse_unix() -> Result<(), Error> {
         let binding = "unix:///tmp/test".try_into()?;
         assert_eq!(Binding::FilePath("/tmp/test".into()), binding);
@@ -229,6 +230,7 @@ mod tests {
 
     #[test]
     #[cfg(unix)]
+    #[serial]
     fn listen_on_socket_cleans_the_socket_file() -> Result<(), Error> {
         let dir = std::env::temp_dir().join("temp-socket");
         let binding = Binding::FilePath(dir);
