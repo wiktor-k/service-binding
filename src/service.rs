@@ -153,8 +153,25 @@ mod tests {
     #[serial]
     fn parse_fd() -> Result<(), Error> {
         std::env::set_var("LISTEN_FDS", "1");
-        let binding = "fd://".try_into()?;
+        let binding = "fd://".parse()?;
         assert_eq!(Binding::FileDescriptor(3), binding);
+
+        let result: Result<Listener, _> = binding.try_into();
+        // UnixListener is supported only on Unix platforms
+        if cfg!(unix) {
+            assert!(result.is_ok());
+        } else {
+            assert!(result.is_err());
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn parse_fd_fail_unsupported_fds_count() -> Result<(), Error> {
+        std::env::set_var("LISTEN_FDS", "3");
+        assert!(matches!("fd://".parse() as Result<Binding, _>, Err(Error)));
         Ok(())
     }
 
@@ -162,10 +179,7 @@ mod tests {
     #[serial]
     fn parse_fd_fail() -> Result<(), Error> {
         std::env::remove_var("LISTEN_FDS");
-        assert!(matches!(
-            "fd://".try_into() as Result<Binding, _>,
-            Err(Error)
-        ));
+        assert!(matches!("fd://".parse() as Result<Binding, _>, Err(Error)));
         Ok(())
     }
 
@@ -173,6 +187,15 @@ mod tests {
     fn parse_unix() -> Result<(), Error> {
         let binding = "unix:///tmp/test".try_into()?;
         assert_eq!(Binding::FilePath("/tmp/test".into()), binding);
+
+        let result: Result<Listener, _> = binding.try_into();
+        // UnixListener is supported only on Unix platforms
+        if cfg!(unix) {
+            assert!(result.is_ok());
+        } else {
+            assert!(result.is_err());
+        }
+
         Ok(())
     }
 
@@ -180,6 +203,16 @@ mod tests {
     fn parse_tcp() -> Result<(), Error> {
         let binding = "tcp://127.0.0.1:8080".try_into()?;
         assert_eq!(Binding::Socket(([127, 0, 0, 1], 8080).into()), binding);
+        let _: Listener = binding.try_into()?;
+        Ok(())
+    }
+
+    #[test]
+    fn parse_tcp_fail() -> Result<(), Error> {
+        assert!(matches!(
+            "tcp://:8080".try_into() as Result<Binding, _>,
+            Err(Error)
+        ));
         Ok(())
     }
 
