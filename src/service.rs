@@ -232,12 +232,12 @@ mod tests {
     fn listen_on_socket_cleans_the_socket_file() -> Result<(), Error> {
         let dir = std::env::temp_dir().join("temp-socket");
         let binding = Binding::FilePath(dir);
-        let listener: Listener = binding.try_into()?;
+        let listener: Listener = binding.try_into().unwrap();
         drop(listener);
         // create a second listener from the same path
         let dir = std::env::temp_dir().join("temp-socket");
         let binding = Binding::FilePath(dir);
-        let listener: Listener = binding.try_into()?;
+        let listener: Listener = binding.try_into().unwrap();
         drop(listener);
         Ok(())
     }
