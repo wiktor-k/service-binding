@@ -13,12 +13,6 @@ pub use service::Listener;
 #[derive(Debug)]
 pub struct Error;
 
-impl From<std::io::Error> for Error {
-    fn from(_: std::io::Error) -> Self {
-        Error
-    }
-}
-
 impl From<std::net::AddrParseError> for Error {
     fn from(_: std::net::AddrParseError) -> Self {
         Error

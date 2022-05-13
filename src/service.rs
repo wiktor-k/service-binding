@@ -149,6 +149,8 @@ mod tests {
 
     use serial_test::serial;
 
+    type Error = Box<dyn std::error::Error>;
+
     #[test]
     #[serial]
     fn parse_fd() -> Result<(), Error> {
