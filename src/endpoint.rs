@@ -57,4 +57,10 @@ mod tests {
         let endpoint: Endpoint = "unix:///tmp/socket".parse().unwrap();
         assert_eq!(endpoint, Endpoint::Unix("/tmp/socket".into(), None));
     }
+
+    #[test]
+    fn parse_fail() {
+        let endpoint: Result<Endpoint, Error> = "unknown://".parse();
+        assert!(endpoint.is_err());
+    }
 }
