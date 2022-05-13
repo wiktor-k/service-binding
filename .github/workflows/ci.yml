@@ -114,6 +114,21 @@ jobs:
       - name: Build and test
         run: cargo build --verbose --all && cargo test --verbose --all -- --nocapture
 
+  code-coverage:
+    name: Code coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install code coverage tool
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-tarpaulin
+          version: latest
+      - name: Collect code coverage
+        run: cargo tarpaulin --out Xml
+      - name: Upload code coverage
+        uses: codecov/codecov-action@v2
+
   lints:
     name: Clippy lints
     runs-on: ${{ matrix.os }}
