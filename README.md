@@ -1,5 +1,8 @@
 # service-binding
 
+![Crates.io](https://img.shields.io/crates/v/service-binding)
+![Codecov](https://img.shields.io/codecov/c/gh/wiktor-k/service-binding)
+
 Provides a way for servers and clients to describe their service
 bindings and client endpoints in a structured URI format.
 
@@ -95,3 +98,19 @@ The service unit file `~/.config/systemd/user/app.service`:
 [Service]
 ExecStart=/usr/bin/app -H fd://
 ```
+
+## License
+
+This project is licensed under either of:
+
+  - [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0),
+  - [MIT license](https://opensource.org/licenses/MIT).
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally
+submitted for inclusion in this crate by you, as defined in the
+Apache-2.0 license, shall be dual licensed as above, without any
+additional terms or conditions.
