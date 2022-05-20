@@ -111,8 +111,12 @@ jobs:
           target: ${{ matrix.target }}
           override: true
       - uses: actions/checkout@v2
-      - name: Build and test
-        run: cargo build --verbose --all && cargo test --verbose --all -- --nocapture
+      - name: Build
+        run: cargo build --verbose --all
+      - name: Test
+        run: cargo test --verbose --all -- --nocapture
+      - name: Generate docs
+        run: cargo doc
 
   code-coverage:
     name: Code coverage
