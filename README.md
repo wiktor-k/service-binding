@@ -1,7 +1,8 @@
 # service-binding
 
-![Crates.io](https://img.shields.io/crates/v/service-binding)
-![Codecov](https://img.shields.io/codecov/c/gh/wiktor-k/service-binding)
+[![CI](https://github.com/wiktor-k/service-binding/actions/workflows/ci.yml/badge.svg)](https://github.com/wiktor-k/service-binding/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/service-binding)](https://crates.io/crates/service-binding)
+[![Codecov](https://img.shields.io/codecov/c/gh/wiktor-k/service-binding)](https://app.codecov.io/gh/wiktor-k/service-binding)
 
 Provides a way for servers and clients to describe their service
 bindings and client endpoints in a structured URI format.
