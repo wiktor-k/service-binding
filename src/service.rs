@@ -147,12 +147,9 @@ impl TryFrom<Binding> for Listener {
 mod tests {
     use super::*;
 
-    use serial_test::serial;
-
     type Error = Box<dyn std::error::Error>;
 
     #[test]
-    #[serial]
     fn parse_fd() -> Result<(), Error> {
         std::env::set_var("LISTEN_FDS", "1");
         let binding = "fd://".parse()?;
@@ -170,7 +167,6 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn parse_fd_fail_unsupported_fds_count() -> Result<(), Error> {
         std::env::set_var("LISTEN_FDS", "3");
         assert!(matches!("fd://".parse() as Result<Binding, _>, Err(Error)));
@@ -178,7 +174,6 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn parse_fd_fail() -> Result<(), Error> {
         std::env::remove_var("LISTEN_FDS");
         assert!(matches!("fd://".parse() as Result<Binding, _>, Err(Error)));
@@ -186,7 +181,6 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn parse_unix() -> Result<(), Error> {
         let binding = "unix:///tmp/test".try_into()?;
         assert_eq!(Binding::FilePath("/tmp/test".into()), binding);
@@ -244,7 +238,6 @@ mod tests {
 
     #[test]
     #[cfg(unix)]
-    #[serial]
     fn listen_on_socket_cleans_the_socket_file() -> Result<(), Error> {
         let dir = std::env::temp_dir().join("temp-socket");
         let binding = Binding::FilePath(dir);
