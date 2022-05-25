@@ -230,6 +230,20 @@ mod tests {
 
     #[test]
     #[cfg(unix)]
+    fn test_bad_tcp_listener() -> Result<(), Error> {
+        use std::os::unix::io::FromRawFd;
+
+        let bad_file_descriptor = 41;
+        let listener = unsafe { TcpListener::from_raw_fd(bad_file_descriptor) };
+
+        // This will trigger Bad File Descriptor errors during conversion
+        // in the WouldBlock loop.
+        let _listener: Listener = listener.into();
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
     #[serial]
     fn listen_on_socket_cleans_the_socket_file() -> Result<(), Error> {
         let dir = std::env::temp_dir().join("temp-socket");
