@@ -18,7 +18,7 @@ By design this crate has no dependencies other than what is in `std`.
 ```rust
 use service_binding::{Binding, Listener};
 
-let host = "tcp://127.0.0.1:8012"; // or "unix:///tmp/socket"
+let host = "tcp://127.0.0.1:8080"; // or "unix:///tmp/socket"
 
 let binding: Binding = host.parse().unwrap();
 
@@ -37,8 +37,8 @@ match binding.try_into().unwrap() {
 
 The following example uses `clap` and `actix-web` and makes it
 possible to run the server using any combination of Unix domain
-sockets (including systemd activation) and regular TCP socket bound to
-a TCP port:
+sockets (including systemd socket activation) and regular TCP socket
+bound to a TCP port:
 
 ```rust,no_run
 use actix_web::{web, App, HttpServer, Responder};
@@ -47,7 +47,12 @@ use service_binding::{Binding, Listener};
 
 #[derive(Parser, Debug)]
 struct Args {
-    #[clap(env = "HOST", short = 'H', long, default_value = "tcp://127.0.0.1:8080")]
+    #[clap(
+        env = "HOST",
+        short = 'H',
+        long,
+        default_value = "tcp://127.0.0.1:8080"
+    )]
     host: Binding,
 }
 
@@ -63,9 +68,9 @@ async fn main() -> std::io::Result<()> {
 
     match Args::parse().host.try_into()? {
         #[cfg(unix)]
-        Listener::Unix(listener) => server.listen_uds(listener)?,
-        Listener::Tcp(listener) => server.listen(listener)?,
-    }.run().await
+        Listener::Unix(listener) => server.listen_uds(listener),
+        Listener::Tcp(listener) => server.listen(listener),
+    }?.run().await
 }
 ```
 
