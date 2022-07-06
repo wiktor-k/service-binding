@@ -168,3 +168,5 @@ jobs:
       - uses: actions/checkout@v2
       - name: Check for lints
         run: cargo clippy -- -D warnings
+      - name: Check for test lints
+        run: cargo clippy --tests -- -D warnings
