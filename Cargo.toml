@@ -1,6 +1,6 @@
 [package]
 name = "service-binding"
-version = "0.3.1"
+version = "1.0.0"
 edition = "2021"
 authors = ["Wiktor Kwapisiewicz <wiktor@metacode.biz>"]
 description = "Automates parsing and binding to TCP and Unix sockets"
