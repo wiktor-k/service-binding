@@ -2,10 +2,8 @@
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
 
-mod endpoint;
 mod service;
 
-pub use endpoint::Endpoint;
 pub use service::Binding;
 pub use service::Listener;
 
