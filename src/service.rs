@@ -17,7 +17,7 @@ use std::path::PathBuf;
 /// let binding = "tcp://127.0.0.1:8080".try_into().unwrap();
 /// assert_eq!(Binding::Socket(([127, 0, 0, 1], 8080).into()), binding);
 /// ```
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Binding {
     /// The service should be bound to this explicit, opened file
     /// descriptor.  This mechanism is used by systemd socket
