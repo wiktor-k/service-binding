@@ -7,13 +7,38 @@ mod service;
 pub use service::Binding;
 pub use service::Listener;
 
-/// Errors while processing service listeners or endpoints.
-#[derive(Debug)]
-pub struct Error;
+use std::net::AddrParseError;
+use std::num::ParseIntError;
 
-impl From<std::net::AddrParseError> for Error {
-    fn from(_: std::net::AddrParseError) -> Self {
-        Error
+/// Errors while processing service listeners.
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum Error {
+    /// IP address cannot be parsed.
+    BadAddress(AddrParseError),
+
+    /// Descriptor value cannot be parsed to a number.
+    BadDescriptor(ParseIntError),
+
+    /// Descriptor value exceeds acceptable range.
+    DescriptorOutOfRange(i32),
+
+    /// Descriptor environment variable (`LISTEN_FDS`) is missing.
+    DescriptorsMissing,
+
+    /// Specified URI scheme is not supported.
+    UnsupportedScheme,
+}
+
+impl From<AddrParseError> for Error {
+    fn from(error: AddrParseError) -> Self {
+        Error::BadAddress(error)
+    }
+}
+
+impl From<ParseIntError> for Error {
+    fn from(error: ParseIntError) -> Self {
+        Error::BadDescriptor(error)
     }
 }
 
@@ -31,6 +56,6 @@ mod tests {
 
     #[test]
     fn test_display() {
-        format!("{}", Error);
+        format!("{}", Error::UnsupportedScheme);
     }
 }

@@ -89,16 +89,16 @@ impl<'a> std::convert::TryFrom<&'a str> for Binding {
     fn try_from(s: &'a str) -> Result<Self, Self::Error> {
         if s == "fd://" {
             if let Ok(fds) = std::env::var("LISTEN_FDS") {
-                let fds: i32 = fds.parse().map_err(|_| Error)?;
+                let fds: i32 = fds.parse()?;
 
                 // we support only one socket for now
                 if fds != 1 {
-                    return Err(Error);
+                    return Err(Error::DescriptorOutOfRange(fds));
                 }
 
                 Ok(Binding::FileDescriptor(fds + 2))
             } else {
-                Err(Error)
+                Err(Error::DescriptorsMissing)
             }
         } else if let Some(file) = s.strip_prefix("unix://") {
             Ok(Binding::FilePath(file.into()))
@@ -106,7 +106,7 @@ impl<'a> std::convert::TryFrom<&'a str> for Binding {
             let addr: SocketAddr = addr.parse()?;
             Ok(Binding::Socket(addr))
         } else {
-            Err(Error)
+            Err(Error::UnsupportedScheme)
         }
     }
 }
@@ -138,7 +138,10 @@ impl TryFrom<Binding> for Listener {
             }
             Binding::Socket(socket) => Ok(std::net::TcpListener::bind(&socket)?.into()),
             #[cfg(not(unix))]
-            _ => Err(std::io::Error::new(std::io::ErrorKind::Other, Error)),
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                Error::UnsupportedScheme,
+            )),
         }
     }
 }
@@ -146,42 +149,56 @@ impl TryFrom<Binding> for Listener {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
 
-    type Error = Box<dyn std::error::Error>;
+    type TestResult = Result<(), Box<dyn std::error::Error>>;
 
     #[test]
-    fn parse_fd() -> Result<(), Error> {
+    fn parse_fd() -> TestResult {
         std::env::set_var("LISTEN_FDS", "1");
         let binding = "fd://".parse()?;
         assert_eq!(Binding::FileDescriptor(3), binding);
 
         let result: Result<Listener, _> = binding.try_into();
+
         // UnixListener is supported only on Unix platforms
-        if cfg!(unix) {
-            assert!(result.is_ok());
-        } else {
-            assert!(result.is_err());
-        }
+        assert_eq!(cfg!(unix), result.is_ok());
 
         Ok(())
     }
 
     #[test]
-    fn parse_fd_fail_unsupported_fds_count() -> Result<(), Error> {
+    fn parse_fd_fail_unsupported_fds_count() -> TestResult {
         std::env::set_var("LISTEN_FDS", "3");
-        assert!(matches!("fd://".parse() as Result<Binding, _>, Err(Error)));
+        assert!(matches!(
+            Binding::from_str("fd://"),
+            Err(Error::DescriptorOutOfRange(3))
+        ));
         Ok(())
     }
 
     #[test]
-    fn parse_fd_fail() -> Result<(), Error> {
+    fn parse_fd_fail_not_a_number() -> TestResult {
+        std::env::set_var("LISTEN_FDS", "3a");
+        assert!(matches!(
+            Binding::from_str("fd://"),
+            Err(Error::BadDescriptor(_))
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn parse_fd_fail() -> TestResult {
         std::env::remove_var("LISTEN_FDS");
-        assert!(matches!("fd://".parse() as Result<Binding, _>, Err(Error)));
+        assert!(matches!(
+            Binding::from_str("fd://"),
+            Err(Error::DescriptorsMissing)
+        ));
         Ok(())
     }
 
     #[test]
-    fn parse_unix() -> Result<(), Error> {
+    fn parse_unix() -> TestResult {
         let binding = "unix:///tmp/test".try_into()?;
         assert_eq!(Binding::FilePath("/tmp/test".into()), binding);
 
@@ -197,7 +214,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_tcp() -> Result<(), Error> {
+    fn parse_tcp() -> TestResult {
         let binding = "tcp://127.0.0.1:8080".try_into()?;
         assert_eq!(Binding::Socket(([127, 0, 0, 1], 8080).into()), binding);
         let _: Listener = binding.try_into()?;
@@ -205,26 +222,26 @@ mod tests {
     }
 
     #[test]
-    fn parse_tcp_fail() -> Result<(), Error> {
+    fn parse_tcp_fail() -> TestResult {
         assert!(matches!(
-            "tcp://:8080".try_into() as Result<Binding, _>,
-            Err(Error)
+            Binding::try_from("tcp://:8080"),
+            Err(Error::BadAddress(_))
         ));
         Ok(())
     }
 
     #[test]
-    fn parse_unknown_fail() -> Result<(), Error> {
+    fn parse_unknown_fail() -> TestResult {
         assert!(matches!(
-            "unknown://test".try_into() as Result<Binding, _>,
-            Err(Error)
+            Binding::try_from("unknown://test"),
+            Err(Error::UnsupportedScheme)
         ));
         Ok(())
     }
 
     #[test]
     #[cfg(unix)]
-    fn test_bad_tcp_listener() -> Result<(), Error> {
+    fn test_bad_tcp_listener() -> TestResult {
         use std::os::unix::io::FromRawFd;
 
         let bad_file_descriptor = 41;
@@ -238,7 +255,7 @@ mod tests {
 
     #[test]
     #[cfg(unix)]
-    fn listen_on_socket_cleans_the_socket_file() -> Result<(), Error> {
+    fn listen_on_socket_cleans_the_socket_file() -> TestResult {
         let dir = std::env::temp_dir().join("temp-socket");
         let binding = Binding::FilePath(dir);
         let listener: Listener = binding.try_into().unwrap();
