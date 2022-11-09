@@ -1,9 +1,10 @@
-use super::Error;
 use std::net::SocketAddr;
 use std::net::TcpListener;
 #[cfg(unix)]
 use std::os::unix::net::UnixListener;
 use std::path::PathBuf;
+
+use super::Error;
 
 /// Service binding.
 ///
@@ -148,8 +149,9 @@ impl TryFrom<Binding> for Listener {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::str::FromStr;
+
+    use super::*;
 
     type TestResult = Result<(), Box<dyn std::error::Error>>;
 
