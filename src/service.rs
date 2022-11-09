@@ -137,7 +137,7 @@ impl TryFrom<Binding> for Listener {
                 let _ = std::fs::remove_file(&path);
                 Ok(UnixListener::bind(path)?.into())
             }
-            Binding::Socket(socket) => Ok(std::net::TcpListener::bind(&socket)?.into()),
+            Binding::Socket(socket) => Ok(std::net::TcpListener::bind(socket)?.into()),
             #[cfg(not(unix))]
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
