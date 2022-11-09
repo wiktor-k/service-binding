@@ -1,9 +1,10 @@
-use super::Error;
 use std::net::SocketAddr;
 use std::net::TcpListener;
 #[cfg(unix)]
 use std::os::unix::net::UnixListener;
 use std::path::PathBuf;
+
+use super::Error;
 
 /// Service binding.
 ///
@@ -17,7 +18,7 @@ use std::path::PathBuf;
 /// let binding = "tcp://127.0.0.1:8080".try_into().unwrap();
 /// assert_eq!(Binding::Socket(([127, 0, 0, 1], 8080).into()), binding);
 /// ```
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Binding {
     /// The service should be bound to this explicit, opened file
     /// descriptor.  This mechanism is used by systemd socket
@@ -136,7 +137,7 @@ impl TryFrom<Binding> for Listener {
                 let _ = std::fs::remove_file(&path);
                 Ok(UnixListener::bind(path)?.into())
             }
-            Binding::Socket(socket) => Ok(std::net::TcpListener::bind(&socket)?.into()),
+            Binding::Socket(socket) => Ok(std::net::TcpListener::bind(socket)?.into()),
             #[cfg(not(unix))]
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -148,8 +149,9 @@ impl TryFrom<Binding> for Listener {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::str::FromStr;
+
+    use super::*;
 
     type TestResult = Result<(), Box<dyn std::error::Error>>;
 

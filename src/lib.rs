@@ -4,11 +4,11 @@
 
 mod service;
 
-pub use service::Binding;
-pub use service::Listener;
-
 use std::net::AddrParseError;
 use std::num::ParseIntError;
+
+pub use service::Binding;
+pub use service::Listener;
 
 /// Errors while processing service listeners.
 #[derive(Debug)]
