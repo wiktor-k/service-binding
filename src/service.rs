@@ -34,6 +34,18 @@ pub enum Binding {
     Socket(SocketAddr),
 }
 
+impl From<PathBuf> for Binding {
+    fn from(value: PathBuf) -> Self {
+        Binding::FilePath(value)
+    }
+}
+
+impl From<SocketAddr> for Binding {
+    fn from(value: SocketAddr) -> Self {
+        Binding::Socket(value)
+    }
+}
+
 /// Opened service listener.
 ///
 /// This structure contains an already open listener. Note that the
@@ -268,5 +280,20 @@ mod tests {
         let listener: Listener = binding.try_into().unwrap();
         drop(listener);
         Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn convert_from_pathbuf() {
+        let path = std::path::PathBuf::from("/tmp");
+        let binding: Binding = path.into();
+        assert!(matches!(binding, Binding::FilePath(_)));
+    }
+
+    #[test]
+    fn convert_from_socket() {
+        let socket: SocketAddr = ([127, 0, 0, 1], 8080).into();
+        let binding: Binding = socket.into();
+        assert!(matches!(binding, Binding::Socket(_)));
     }
 }
