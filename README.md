@@ -4,12 +4,22 @@
 [![Crates.io](https://img.shields.io/crates/v/service-binding)](https://crates.io/crates/service-binding)
 [![Codecov](https://img.shields.io/codecov/c/gh/wiktor-k/service-binding)](https://app.codecov.io/gh/wiktor-k/service-binding)
 
-Provides a way for servers and clients to describe their service
-bindings and client endpoints in a structured URI format.
+Provides a way for servers and clients to describe their service bindings and client endpoints in a structured format.
 
-This crate automates parsing and binding to TCP and Unix sockets.
+This crate automates parsing and binding to TCP sockets, Unix sockets and [Windows Named Pipes][WNP].
+
+[WNP]: https://learn.microsoft.com/en-us/windows/win32/ipc/named-pipes
 
 By design this crate has no dependencies other than what is in `std`.
+
+## Supported schemes
+
+Currently the crate supports for the following formats:
+
+- `tcp://ip:port` (e.g. `tcp://127.0.0.1:8080`) - TCP sockets,
+- `unix://path` (e.g. `unix:///run/user/1000/test.sock`) - Unix domain sockets,
+- `fd://` - systemd Socket Activation protocol (returns a Unix domain socket),
+- `\\path` (e.g. `\\.\pipe\test`) for Windows Named Pipes.
 
 ## Examples
 
@@ -29,6 +39,9 @@ match binding.try_into().unwrap() {
     },
     Listener::Tcp(listener) => {
         // bind to a TCP socket
+    }
+    Listener::NamedPipe(pipe) => {
+        // bind to a Windows Named Pipe
     }
 }
 ```
@@ -70,6 +83,7 @@ async fn main() -> std::io::Result<()> {
         #[cfg(unix)]
         Listener::Unix(listener) => server.listen_uds(listener),
         Listener::Tcp(listener) => server.listen(listener),
+        _ => Err(std::io::Error::other("Unsupported listener type")),
     }?.run().await
 }
 ```

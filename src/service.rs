@@ -32,6 +32,9 @@ pub enum Binding {
     /// The service should be bound to a TCP socket with given
     /// parameters.
     Socket(SocketAddr),
+
+    /// Windows Named Pipe.
+    NamedPipe(std::ffi::OsString),
 }
 
 impl From<PathBuf> for Binding {
@@ -67,6 +70,9 @@ pub enum Listener {
 
     /// Listener for a TCP socket.
     Tcp(TcpListener),
+
+    /// Named Pipe.
+    NamedPipe(std::ffi::OsString),
 }
 
 #[cfg(unix)]
@@ -118,6 +124,8 @@ impl<'a> std::convert::TryFrom<&'a str> for Binding {
         } else if let Some(addr) = s.strip_prefix("tcp://") {
             let addr: SocketAddr = addr.parse()?;
             Ok(Binding::Socket(addr))
+        } else if s.starts_with(r"\\") {
+            Ok(Binding::NamedPipe(s.into()))
         } else {
             Err(Error::UnsupportedScheme)
         }
@@ -150,6 +158,7 @@ impl TryFrom<Binding> for Listener {
                 Ok(UnixListener::bind(path)?.into())
             }
             Binding::Socket(socket) => Ok(std::net::TcpListener::bind(socket)?.into()),
+            Binding::NamedPipe(pipe) => Ok(Listener::NamedPipe(pipe)),
             #[cfg(not(unix))]
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -240,6 +249,23 @@ mod tests {
         assert!(matches!(
             Binding::try_from("tcp://:8080"),
             Err(Error::BadAddress(_))
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn parse_pipe() -> TestResult {
+        let binding = r"\\.\pipe\test".try_into()?;
+        assert_eq!(Binding::NamedPipe(r"\\.\pipe\test".into()), binding);
+        let _: Listener = binding.try_into()?;
+        Ok(())
+    }
+
+    #[test]
+    fn parse_pipe_fail() -> TestResult {
+        assert!(matches!(
+            Binding::try_from(r"\test"),
+            Err(Error::UnsupportedScheme)
         ));
         Ok(())
     }
