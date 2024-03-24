@@ -14,7 +14,7 @@ By design this crate has no dependencies other than what is in `std`.
 
 ## Supported schemes
 
-Currently the crate supports for the following formats:
+Currently the crate supports parsing strings of the following formats:
 
 - `tcp://ip:port` (e.g. `tcp://127.0.0.1:8080`) - TCP sockets,
 - `unix://path` (e.g. `unix:///run/user/1000/test.sock`) - Unix domain sockets,
