@@ -106,19 +106,35 @@ impl<'a> std::convert::TryFrom<&'a str> for Binding {
     type Error = Error;
 
     fn try_from(s: &'a str) -> Result<Self, Self::Error> {
-        if s == "fd://" {
-            if let Ok(fds) = std::env::var("LISTEN_FDS") {
-                let fds: i32 = fds.parse()?;
+        if let Some(name) = s.strip_prefix("fd://") {
+            if name.is_empty() {
+                if let Ok(fds) = std::env::var("LISTEN_FDS") {
+                    let fds: i32 = fds.parse()?;
 
-                // we support only one socket for now
-                if fds != 1 {
-                    return Err(Error::DescriptorOutOfRange(fds));
+                    // we support only one socket for now
+                    if fds != 1 {
+                        return Err(Error::DescriptorOutOfRange(fds));
+                    }
+
+                    return Ok(Binding::FileDescriptor(fds + 2));
+                } else {
+                    return Err(Error::DescriptorsMissing);
                 }
-
-                Ok(Binding::FileDescriptor(fds + 2))
-            } else {
-                Err(Error::DescriptorsMissing)
             }
+            if let Ok(fd) = name.parse() {
+                return Ok(Binding::FileDescriptor(fd));
+            }
+            #[cfg(target_os = "macos")]
+            {
+                let fds = raunch::activate_socket(name).map_err(|_| Error::DescriptorsMissing)?;
+                if fds.len() == 1 {
+                    Ok(Binding::FileDescriptor(fds[0]))
+                } else {
+                    Err(Error::DescriptorOutOfRange(fds.len() as i32))
+                }
+            }
+            #[cfg(not(target_os = "macos"))]
+            Err(Error::DescriptorsMissing)
         } else if let Some(file) = s.strip_prefix("unix://") {
             Ok(Binding::FilePath(file.into()))
         } else if let Some(addr) = s.strip_prefix("tcp://") {
@@ -181,6 +197,19 @@ mod tests {
         std::env::set_var("LISTEN_FDS", "1");
         let binding = "fd://".parse()?;
         assert_eq!(Binding::FileDescriptor(3), binding);
+
+        let result: Result<Listener, _> = binding.try_into();
+
+        // UnixListener is supported only on Unix platforms
+        assert_eq!(cfg!(unix), result.is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_fd_explicit() -> TestResult {
+        let binding = "fd://56".parse()?;
+        assert_eq!(Binding::FileDescriptor(56), binding);
 
         let result: Result<Listener, _> = binding.try_into();
 
