@@ -177,9 +177,9 @@ and loaded via `launchctl load ~/Library/LaunchAgents/service.plist`):
 		</dict>
 	</dict>
 	<key>StandardErrorPath</key>
-	<string>/Users/wiktor/Library/Logs/openpgp-card-ssh-agent/stderr.log</string>
+	<string>/Users/test/Library/Logs/service/stderr.log</string>
 	<key>StandardOutPath</key>
-	<string>/Users/wiktor/Library/Logs/openpgp-card-ssh-agent/stdout.log</string>
+	<string>/Users/test/Library/Logs/service/stdout.log</string>
 </dict>
 </plist>
 ```
