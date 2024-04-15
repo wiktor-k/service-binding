@@ -21,7 +21,7 @@ Currently the crate supports parsing strings of the following formats:
   - `fd://` - take the single socket from systemd (equivalent of `fd://3` but fails if more sockets have been passed),
   - `fd://<number>` - use an exact number as a file descriptor,
   - `fd://<socket-name>` - use socket activation by name,
-- `\\path` (e.g. `\\.\pipe\test`) for Windows Named Pipes.
+- `npipe://<path>` (e.g. `npipe://test`) for Windows Named Pipes (translates to `\\.\pipe\test`).
 
 [#271]: https://github.com/rust-lang/libs-team/issues/271
 [#56533]: https://github.com/rust-lang/rust/issues/56533
