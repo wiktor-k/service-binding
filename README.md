@@ -11,6 +11,10 @@ This crate automates parsing and binding to TCP sockets, Unix sockets and [Windo
 
 By design this crate is very lean and mostly relies on what is in `std` (with an exception of macOS launchd service binding).
 
+The URI scheme bindings have been heavily inspired by how [Docker Engine] specifies them.
+
+[Docker Engine]: https://docs.docker.com/desktop/faqs/general/#how-do-i-connect-to-the-remote-docker-engine-api
+
 ## Supported schemes
 
 Currently the crate supports parsing strings of the following formats:
