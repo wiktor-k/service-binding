@@ -10,7 +10,7 @@ This crate automates parsing and binding to TCP sockets, Unix sockets and [Windo
 
 [WNP]: https://learn.microsoft.com/en-us/windows/win32/ipc/named-pipes
 
-By design this crate has no dependencies other than what is in `std`.
+By design this crate is very lean and mostly relies on what is in `std` (with an exception of macOS launchd service binding).
 
 ## Supported schemes
 
@@ -18,7 +18,10 @@ Currently the crate supports parsing strings of the following formats:
 
 - `tcp://ip:port` (e.g. `tcp://127.0.0.1:8080`) - TCP sockets,
 - `unix://path` (e.g. `unix:///run/user/1000/test.sock`) - Unix domain sockets,
-- `fd://` - systemd Socket Activation protocol (returns a Unix domain socket),
+- `fd://` - socket activation protocol (returns a Unix domain socket):
+  - `fd://` - take the first socket from systemd,
+  - `fd://<number>` - use an exact number as a file descriptor,
+  - `fd://<socket-name>` - (macOS only) use launchd socket by name,
 - `\\path` (e.g. `\\.\pipe\test`) for Windows Named Pipes.
 
 ## Examples
@@ -117,6 +120,58 @@ The service unit file `~/.config/systemd/user/app.service`:
 ```ini
 [Service]
 ExecStart=/usr/bin/app -H fd://
+```
+
+## launchd Socket Activation
+
+On macOS [launchd socket activation][LSA] is also available although the socket
+needs to be explicitly named through the `fd://socket-name` syntax.
+
+[LSA]: https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html
+
+The corresponding `plist` file (which can be placed in `~/Library/LaunchAgents`
+and loaded via `launchctl load ~/Library/LaunchAgents/service.plist`):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>RUST_LOG</key>
+		<string>debug</string>
+	</dict>
+	<key>KeepAlive</key>
+	<true/>
+	<key>Label</key>
+	<string>com.example.service</string>
+	<key>OnDemand</key>
+	<true/>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/path/to/service</string>
+		<string>-H</string>
+		<string>fd://socket-name</string> <!-- activate socket by name -->
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>Sockets</key>
+	<dict>
+		<key>socket-name</key> <!-- the socket name here -->
+		<dict>
+			<key>SockPathName</key>
+			<string>/path/to/socket</string>
+			<key>SockFamily</key>
+			<string>Unix</string>
+		</dict>
+	</dict>
+	<key>StandardErrorPath</key>
+	<string>/Users/wiktor/Library/Logs/openpgp-card-ssh-agent/stderr.log</string>
+	<key>StandardOutPath</key>
+	<string>/Users/wiktor/Library/Logs/openpgp-card-ssh-agent/stdout.log</string>
+</dict>
+</plist>
 ```
 
 ## License

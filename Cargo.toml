@@ -10,6 +10,9 @@ keywords = ["sockets", "systemd", "listenfd", "unix", "binding"]
 categories = ["parsing"]
 exclude = [".github"]
 
+[target.'cfg(target_os = "macos")'.dependencies]
+raunch = "1"
+
 [dev-dependencies]
 actix-web = { version = "4", default-features = false, features = ["macros"] }
 clap = { version = "4", features = ["derive", "env"] }
