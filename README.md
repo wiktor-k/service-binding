@@ -18,9 +18,9 @@ Currently the crate supports parsing strings of the following formats:
 - `tcp://ip:port` (e.g. `tcp://127.0.0.1:8080`) - TCP sockets,
 - `unix://path` (e.g. `unix:///run/user/1000/test.sock`) - Unix domain sockets,
 - `fd://` - socket activation protocol (returns a Unix domain socket):
-  - `fd://` - take the first socket from systemd,
+  - `fd://` - take the single socket from systemd (equivalent of `fd://3` but fails if more sockets have been passed),
   - `fd://<number>` - use an exact number as a file descriptor,
-  - `fd://<socket-name>` - (macOS only) use launchd socket by name,
+  - `fd://<socket-name>` - use socket activation by name,
 - `\\path` (e.g. `\\.\pipe\test`) for Windows Named Pipes.
 
 ## Examples
@@ -104,6 +104,7 @@ For example the following file defines a socket unit:
 ```ini
 [Socket]
 ListenStream=%t/app.sock
+FileDescriptorName=service-name
 
 [Install]
 WantedBy=sockets.target
@@ -120,6 +121,9 @@ The service unit file `~/.config/systemd/user/app.service`:
 [Service]
 ExecStart=/usr/bin/app -H fd://
 ```
+
+Since the socket is named (`FileDescriptorName=service-name`) it can
+also be selected using its explicit name: `fd://service-name`.
 
 ## launchd Socket Activation
 
