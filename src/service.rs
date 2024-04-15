@@ -152,6 +152,12 @@ impl<'a> std::convert::TryFrom<&'a str> for Binding {
             }
         } else if let Some(file) = s.strip_prefix("unix://") {
             Ok(Binding::FilePath(file.into()))
+        } else if let Some(file) = s.strip_prefix("npipe://") {
+            if let Some('.' | '/' | '\\') = file.chars().next() {
+                Ok(Binding::NamedPipe(file.replace('/', "\\").into()))
+            } else {
+                Ok(Binding::NamedPipe(format!(r"\\.\pipe\{file}").into()))
+            }
         } else if let Some(addr) = s.strip_prefix("tcp://") {
             let addr: SocketAddr = addr.parse()?;
             Ok(Binding::Socket(addr))
@@ -331,8 +337,8 @@ mod tests {
 
     #[test]
     fn parse_tcp() -> TestResult {
-        let binding = "tcp://127.0.0.1:8080".try_into()?;
-        assert_eq!(Binding::Socket(([127, 0, 0, 1], 8080).into()), binding);
+        let binding = "tcp://127.0.0.1:8081".try_into()?;
+        assert_eq!(Binding::Socket(([127, 0, 0, 1], 8081).into()), binding);
         let _: Listener = binding.try_into()?;
         Ok(())
     }
@@ -349,6 +355,22 @@ mod tests {
     #[test]
     fn parse_pipe() -> TestResult {
         let binding = r"\\.\pipe\test".try_into()?;
+        assert_eq!(Binding::NamedPipe(r"\\.\pipe\test".into()), binding);
+        let _: Listener = binding.try_into()?;
+        Ok(())
+    }
+
+    #[test]
+    fn parse_pipe_short() -> TestResult {
+        let binding = r"npipe://test".try_into()?;
+        assert_eq!(Binding::NamedPipe(r"\\.\pipe\test".into()), binding);
+        let _: Listener = binding.try_into()?;
+        Ok(())
+    }
+
+    #[test]
+    fn parse_pipe_long() -> TestResult {
+        let binding = r"npipe:////./pipe/test".try_into()?;
         assert_eq!(Binding::NamedPipe(r"\\.\pipe\test".into()), binding);
         let _: Listener = binding.try_into()?;
         Ok(())

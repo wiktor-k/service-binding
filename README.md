@@ -11,6 +11,10 @@ This crate automates parsing and binding to TCP sockets, Unix sockets and [Windo
 
 By design this crate is very lean and mostly relies on what is in `std` (with an exception of macOS launchd service binding).
 
+The URI scheme bindings have been heavily inspired by how [Docker Engine] specifies them.
+
+[Docker Engine]: https://docs.docker.com/desktop/faqs/general/#how-do-i-connect-to-the-remote-docker-engine-api
+
 ## Supported schemes
 
 Currently the crate supports parsing strings of the following formats:
@@ -21,7 +25,7 @@ Currently the crate supports parsing strings of the following formats:
   - `fd://` - take the single socket from systemd (equivalent of `fd://3` but fails if more sockets have been passed),
   - `fd://<number>` - use an exact number as a file descriptor,
   - `fd://<socket-name>` - use socket activation by name,
-- `\\path` (e.g. `\\.\pipe\test`) for Windows Named Pipes.
+- `npipe://<path>` (e.g. `npipe://test`) for Windows Named Pipes (translates to `\\.\pipe\test`).
 
 [#271]: https://github.com/rust-lang/libs-team/issues/271
 [#56533]: https://github.com/rust-lang/rust/issues/56533
@@ -173,9 +177,9 @@ and loaded via `launchctl load ~/Library/LaunchAgents/service.plist`):
 		</dict>
 	</dict>
 	<key>StandardErrorPath</key>
-	<string>/Users/wiktor/Library/Logs/openpgp-card-ssh-agent/stderr.log</string>
+	<string>/Users/test/Library/Logs/service/stderr.log</string>
 	<key>StandardOutPath</key>
-	<string>/Users/wiktor/Library/Logs/openpgp-card-ssh-agent/stdout.log</string>
+	<string>/Users/test/Library/Logs/service/stdout.log</string>
 </dict>
 </plist>
 ```
