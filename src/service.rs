@@ -337,8 +337,8 @@ mod tests {
 
     #[test]
     fn parse_tcp() -> TestResult {
-        let binding = "tcp://127.0.0.1:8080".try_into()?;
-        assert_eq!(Binding::Socket(([127, 0, 0, 1], 8080).into()), binding);
+        let binding = "tcp://127.0.0.1:8081".try_into()?;
+        assert_eq!(Binding::Socket(([127, 0, 0, 1], 8081).into()), binding);
         let _: Listener = binding.try_into()?;
         Ok(())
     }
