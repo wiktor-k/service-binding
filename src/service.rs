@@ -188,11 +188,14 @@ impl TryFrom<Binding> for Listener {
 mod tests {
     use std::str::FromStr;
 
+    use serial_test::serial;
+
     use super::*;
 
     type TestResult = Result<(), Box<dyn std::error::Error>>;
 
     #[test]
+    #[serial]
     fn parse_fd() -> TestResult {
         std::env::set_var("LISTEN_FDS", "1");
         let binding = "fd://".parse()?;
@@ -207,6 +210,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn parse_fd_explicit() -> TestResult {
         let binding = "fd://56".parse()?;
         assert_eq!(Binding::FileDescriptor(56), binding);
@@ -220,6 +224,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn parse_fd_fail_unsupported_fds_count() -> TestResult {
         std::env::set_var("LISTEN_FDS", "3");
         assert!(matches!(
@@ -230,6 +235,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn parse_fd_fail_not_a_number() -> TestResult {
         std::env::set_var("LISTEN_FDS", "3a");
         assert!(matches!(
@@ -240,6 +246,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn parse_fd_fail() -> TestResult {
         std::env::remove_var("LISTEN_FDS");
         assert!(matches!(
@@ -310,6 +317,7 @@ mod tests {
 
     #[test]
     #[cfg(unix)]
+    #[serial]
     fn test_bad_tcp_listener() -> TestResult {
         use std::os::unix::io::FromRawFd;
 
@@ -324,6 +332,7 @@ mod tests {
 
     #[test]
     #[cfg(unix)]
+    #[serial]
     fn listen_on_socket_cleans_the_socket_file() -> TestResult {
         let dir = std::env::temp_dir().join("temp-socket");
         let binding = Binding::FilePath(dir);
