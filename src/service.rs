@@ -1,3 +1,4 @@
+use std::env::var;
 use std::net::SocketAddr;
 use std::net::TcpListener;
 #[cfg(unix)]
@@ -5,6 +6,8 @@ use std::os::unix::net::UnixListener;
 use std::path::PathBuf;
 
 use super::Error;
+
+const SD_LISTEN_FDS_START: i32 = 3;
 
 /// Service binding.
 ///
@@ -108,7 +111,7 @@ impl<'a> std::convert::TryFrom<&'a str> for Binding {
     fn try_from(s: &'a str) -> Result<Self, Self::Error> {
         if let Some(name) = s.strip_prefix("fd://") {
             if name.is_empty() {
-                if let Ok(fds) = std::env::var("LISTEN_FDS") {
+                if let Ok(fds) = var("LISTEN_FDS") {
                     let fds: i32 = fds.parse()?;
 
                     // we support only one socket for now
@@ -116,7 +119,7 @@ impl<'a> std::convert::TryFrom<&'a str> for Binding {
                         return Err(Error::DescriptorOutOfRange(fds));
                     }
 
-                    return Ok(Binding::FileDescriptor(fds + 2));
+                    return Ok(Binding::FileDescriptor(SD_LISTEN_FDS_START));
                 } else {
                     return Err(Error::DescriptorsMissing);
                 }
@@ -134,7 +137,19 @@ impl<'a> std::convert::TryFrom<&'a str> for Binding {
                 }
             }
             #[cfg(not(target_os = "macos"))]
-            Err(Error::DescriptorsMissing)
+            {
+                if let (Ok(names), Ok(fds)) = (var("LISTEN_FDNAMES"), var("LISTEN_FDS")) {
+                    let fds: usize = fds.parse()?;
+                    for (fd_index, fd_name) in names.split(':').enumerate() {
+                        if fd_name == name && fd_index < fds {
+                            return Ok(Binding::FileDescriptor(
+                                SD_LISTEN_FDS_START + fd_index as i32,
+                            ));
+                        }
+                    }
+                }
+                Err(Error::DescriptorsMissing)
+            }
         } else if let Some(file) = s.strip_prefix("unix://") {
             Ok(Binding::FilePath(file.into()))
         } else if let Some(addr) = s.strip_prefix("tcp://") {
@@ -205,6 +220,48 @@ mod tests {
 
         // UnixListener is supported only on Unix platforms
         assert_eq!(cfg!(unix), result.is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    // on non-macOS systems this reads environment variables
+    #[cfg(not(target_os = "macos"))]
+    #[serial]
+    fn parse_fd_named() -> TestResult {
+        std::env::set_var("LISTEN_FDS", "2");
+        std::env::set_var("LISTEN_FDNAMES", "other:service-name");
+        let binding = "fd://service-name".parse()?;
+        assert_eq!(Binding::FileDescriptor(4), binding);
+        std::env::remove_var("LISTEN_FDNAMES");
+
+        Ok(())
+    }
+
+    #[test]
+    // on macOS the test will attempt launchd system activation but since
+    // the plist file is not present it will fail
+    #[cfg(target_os = "macos")]
+    #[serial]
+    fn parse_fd_named() -> TestResult {
+        assert!(matches!(
+            Binding::from_str("fd://service-name"),
+            Err(Error::DescriptorsMissing)
+        ));
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn parse_fd_bad() -> TestResult {
+        std::env::set_var("LISTEN_FDS", "1"); // should be "2"
+        std::env::set_var("LISTEN_FDNAMES", "other:service-name");
+        assert!(matches!(
+            Binding::from_str("fd://service-name"),
+            Err(Error::DescriptorsMissing)
+        ));
+        std::env::remove_var("LISTEN_FDNAMES");
 
         Ok(())
     }
