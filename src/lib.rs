@@ -9,6 +9,7 @@ use std::num::ParseIntError;
 
 pub use service::Binding;
 pub use service::Listener;
+pub use service::Stream;
 
 /// Errors while processing service listeners.
 #[derive(Debug)]

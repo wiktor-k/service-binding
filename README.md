@@ -22,9 +22,9 @@ Currently the crate supports parsing strings of the following formats:
 - `tcp://ip:port` (e.g. `tcp://127.0.0.1:8080`) - TCP sockets,
 - `unix://path` (e.g. `unix:///run/user/1000/test.sock`) - Unix domain sockets, not available on Windows through the `std` right now (see [#271] and [#56533]),
 - `fd://` - socket activation protocol (returns a Unix domain socket):
-  - `fd://` - take the single socket from systemd (equivalent of `fd://3` but fails if more sockets have been passed),
+  - `fd://` - take the single socket from systemd (equivalent of `fd://3` but fails if more sockets have been passed) *listener only*,
   - `fd://<number>` - use an exact number as a file descriptor,
-  - `fd://<socket-name>` - use socket activation by name,
+  - `fd://<socket-name>` - use socket activation by name, *listener only*,
 - `npipe://<path>` (e.g. `npipe://test`) for Windows Named Pipes (translates to `\\.\pipe\test`).
 
 [#271]: https://github.com/rust-lang/libs-team/issues/271
