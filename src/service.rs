@@ -1,8 +1,11 @@
 use std::env::var;
 use std::net::SocketAddr;
 use std::net::TcpListener;
+use std::net::TcpStream;
 #[cfg(unix)]
 use std::os::unix::net::UnixListener;
+#[cfg(unix)]
+use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 
 use super::Error;
@@ -105,6 +108,59 @@ impl From<TcpListener> for Listener {
     }
 }
 
+/// Client service connection.
+///
+/// This structure contains an already open stream. Note that the
+/// streams are set to non-blocking mode.
+///
+/// # Examples
+///
+/// ```no_run
+/// # use service_binding::{Binding, Stream};
+/// let binding: Binding = "tcp://127.0.0.1:8080".parse().unwrap();
+/// let stream = binding.try_into().unwrap();
+/// assert!(matches!(stream, Stream::Tcp(_)));
+/// ```
+#[derive(Debug)]
+pub enum Stream {
+    /// Stream for a Unix domain socket.
+    #[cfg(unix)]
+    Unix(UnixStream),
+
+    /// Stream for a TCP socket.
+    Tcp(TcpStream),
+
+    /// Named Pipe.
+    NamedPipe(std::ffi::OsString),
+}
+
+#[cfg(unix)]
+impl From<UnixStream> for Stream {
+    fn from(stream: UnixStream) -> Self {
+        while let Err(e) = stream.set_nonblocking(true) {
+            // retry WouldBlock errors
+            if e.kind() != std::io::ErrorKind::WouldBlock {
+                break;
+            }
+        }
+
+        Stream::Unix(stream)
+    }
+}
+
+impl From<TcpStream> for Stream {
+    fn from(stream: TcpStream) -> Self {
+        while let Err(e) = stream.set_nonblocking(true) {
+            // retry WouldBlock errors
+            if e.kind() != std::io::ErrorKind::WouldBlock {
+                break;
+            }
+        }
+
+        Stream::Tcp(stream)
+    }
+}
+
 impl<'a> std::convert::TryFrom<&'a str> for Binding {
     type Error = Error;
 
@@ -196,6 +252,30 @@ impl TryFrom<Binding> for Listener {
             }
             Binding::Socket(socket) => Ok(std::net::TcpListener::bind(socket)?.into()),
             Binding::NamedPipe(pipe) => Ok(Listener::NamedPipe(pipe)),
+            #[cfg(not(unix))]
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                Error::UnsupportedScheme,
+            )),
+        }
+    }
+}
+
+impl TryFrom<Binding> for Stream {
+    type Error = std::io::Error;
+
+    fn try_from(value: Binding) -> Result<Self, Self::Error> {
+        match value {
+            #[cfg(unix)]
+            Binding::FileDescriptor(descriptor) => {
+                use std::os::unix::io::FromRawFd;
+
+                Ok(unsafe { UnixStream::from_raw_fd(descriptor) }.into())
+            }
+            #[cfg(unix)]
+            Binding::FilePath(path) => Ok(UnixStream::connect(path)?.into()),
+            Binding::Socket(socket) => Ok(std::net::TcpStream::connect(socket)?.into()),
+            Binding::NamedPipe(pipe) => Ok(Self::NamedPipe(pipe)),
             #[cfg(not(unix))]
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
