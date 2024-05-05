@@ -4,7 +4,7 @@
 
 mod service;
 
-use std::net::AddrParseError;
+use std::io;
 use std::num::ParseIntError;
 
 pub use service::Binding;
@@ -15,8 +15,8 @@ pub use service::Stream;
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Error {
-    /// IP address cannot be parsed.
-    BadAddress(AddrParseError),
+    /// Address cannot be parsed and did not resolve to a known domain
+    BadAddress(io::Error),
 
     /// Descriptor value cannot be parsed to a number.
     BadDescriptor(ParseIntError),
@@ -29,12 +29,6 @@ pub enum Error {
 
     /// Specified URI scheme is not supported.
     UnsupportedScheme,
-}
-
-impl From<AddrParseError> for Error {
-    fn from(error: AddrParseError) -> Self {
-        Error::BadAddress(error)
-    }
 }
 
 impl From<ParseIntError> for Error {
