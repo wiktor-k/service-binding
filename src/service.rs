@@ -2,6 +2,7 @@ use std::env::var;
 use std::net::SocketAddr;
 use std::net::TcpListener;
 use std::net::TcpStream;
+use std::net::ToSocketAddrs;
 #[cfg(unix)]
 use std::os::unix::net::UnixListener;
 #[cfg(unix)]
@@ -22,7 +23,10 @@ const SD_LISTEN_FDS_START: i32 = 3;
 /// ```
 /// # use service_binding::Binding;
 /// let binding = "tcp://127.0.0.1:8080".try_into().unwrap();
-/// assert_eq!(Binding::Socket(([127, 0, 0, 1], 8080).into()), binding);
+/// assert_eq!(
+///     Binding::Sockets(vec![([127, 0, 0, 1], 8080).into()]),
+///     binding
+/// );
 /// ```
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Binding {
@@ -35,9 +39,9 @@ pub enum Binding {
     /// specified path.
     FilePath(PathBuf),
 
-    /// The service should be bound to a TCP socket with given
-    /// parameters.
-    Socket(SocketAddr),
+    /// The service should be bound to the first TCP socket that succeed
+    /// the binding.
+    Sockets(Vec<SocketAddr>),
 
     /// Windows Named Pipe.
     NamedPipe(std::ffi::OsString),
@@ -51,7 +55,7 @@ impl From<PathBuf> for Binding {
 
 impl From<SocketAddr> for Binding {
     fn from(value: SocketAddr) -> Self {
-        Binding::Socket(value)
+        Binding::Sockets(vec![value])
     }
 }
 
@@ -215,8 +219,10 @@ impl<'a> std::convert::TryFrom<&'a str> for Binding {
                 Ok(Binding::NamedPipe(format!(r"\\.\pipe\{file}").into()))
             }
         } else if let Some(addr) = s.strip_prefix("tcp://") {
-            let addr: SocketAddr = addr.parse()?;
-            Ok(Binding::Socket(addr))
+            match addr.to_socket_addrs() {
+                Ok(addrs) => Ok(Binding::Sockets(addrs.collect())),
+                Err(err) => return Err(Error::BadAddress(err)),
+            }
         } else if s.starts_with(r"\\") {
             Ok(Binding::NamedPipe(s.into()))
         } else {
@@ -250,7 +256,7 @@ impl TryFrom<Binding> for Listener {
                 let _ = std::fs::remove_file(&path);
                 Ok(UnixListener::bind(path)?.into())
             }
-            Binding::Socket(socket) => Ok(std::net::TcpListener::bind(socket)?.into()),
+            Binding::Sockets(sockets) => Ok(std::net::TcpListener::bind(&*sockets)?.into()),
             Binding::NamedPipe(pipe) => Ok(Listener::NamedPipe(pipe)),
             #[cfg(not(unix))]
             _ => Err(std::io::Error::new(
@@ -274,7 +280,7 @@ impl TryFrom<Binding> for Stream {
             }
             #[cfg(unix)]
             Binding::FilePath(path) => Ok(UnixStream::connect(path)?.into()),
-            Binding::Socket(socket) => Ok(std::net::TcpStream::connect(socket)?.into()),
+            Binding::Sockets(sockets) => Ok(std::net::TcpStream::connect(&*sockets)?.into()),
             Binding::NamedPipe(pipe) => Ok(Self::NamedPipe(pipe)),
             #[cfg(not(unix))]
             _ => Err(std::io::Error::new(
@@ -433,7 +439,33 @@ mod tests {
     #[test]
     fn parse_tcp() -> TestResult {
         let binding = "tcp://127.0.0.1:8081".try_into()?;
-        assert_eq!(Binding::Socket(([127, 0, 0, 1], 8081).into()), binding);
+        assert_eq!(
+            Binding::from(SocketAddr::from(([127, 0, 0, 1], 8081))),
+            binding
+        );
+        let _: Listener = binding.try_into()?;
+        Ok(())
+    }
+
+    #[test]
+    fn parse_tcp_localhost() -> TestResult {
+        let mut binding = "tcp://localhost:8081".try_into()?;
+
+        let Binding::Sockets(addrs) = &mut binding else {
+            panic!("Address should be parsed to Sockets");
+        };
+
+        let mut expected = vec![
+            SocketAddr::from(([127, 0, 0, 1], 8081)),
+            SocketAddr::from(([0, 0, 0, 0, 0, 0, 0, 1], 8081)),
+        ];
+
+        // Sort both vectors for testing equality as the ordering may be different
+        addrs.sort();
+        expected.sort();
+
+        assert_eq!(addrs, &expected);
+
         let _: Listener = binding.try_into()?;
         Ok(())
     }
@@ -441,9 +473,15 @@ mod tests {
     #[test]
     fn parse_tcp_fail() -> TestResult {
         assert!(matches!(
-            Binding::try_from("tcp://:8080"),
+            Binding::try_from("tcp://::8080"),
             Err(Error::BadAddress(_))
         ));
+
+        assert!(matches!(
+            Binding::try_from("tcp://an-unknown-hostname:8080"),
+            Err(Error::BadAddress(_))
+        ));
+
         Ok(())
     }
 
@@ -517,6 +555,6 @@ mod tests {
     fn convert_from_socket() {
         let socket: SocketAddr = ([127, 0, 0, 1], 8080).into();
         let binding: Binding = socket.into();
-        assert!(matches!(binding, Binding::Socket(_)));
+        assert!(matches!(binding, Binding::Sockets(_)));
     }
 }
