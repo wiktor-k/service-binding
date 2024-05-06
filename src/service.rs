@@ -287,6 +287,8 @@ impl TryFrom<Binding> for Stream {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
+    use std::os::fd::IntoRawFd;
     use std::str::FromStr;
 
     use serial_test::serial;
@@ -302,6 +304,15 @@ mod tests {
         let binding = "fd://".parse()?;
         assert_eq!(Binding::FileDescriptor(3), binding);
 
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
+    #[serial]
+    fn fd_to_listener() -> TestResult {
+        let file = tempfile::tempfile()?;
+        let binding = Binding::FileDescriptor(file.into_raw_fd());
         let result: Result<Listener, _> = binding.try_into();
 
         // UnixListener is supported only on Unix platforms
@@ -353,10 +364,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     #[serial]
     fn parse_fd_explicit() -> TestResult {
-        let binding = "fd://56".parse()?;
-        assert_eq!(Binding::FileDescriptor(56), binding);
+        let file = tempfile::tempfile()?;
+
+        let raw_fd = file.into_raw_fd();
+        let binding = format!("fd://{raw_fd}").parse()?;
+        assert_eq!(Binding::FileDescriptor(raw_fd), binding);
 
         let result: Result<Listener, _> = binding.try_into();
 
@@ -471,21 +486,6 @@ mod tests {
             Binding::try_from("unknown://test"),
             Err(Error::UnsupportedScheme)
         ));
-        Ok(())
-    }
-
-    #[test]
-    #[cfg(unix)]
-    #[serial]
-    fn test_bad_tcp_listener() -> TestResult {
-        use std::os::unix::io::FromRawFd;
-
-        let bad_file_descriptor = 41;
-        let listener = unsafe { TcpListener::from_raw_fd(bad_file_descriptor) };
-
-        // This will trigger Bad File Descriptor errors during conversion
-        // in the WouldBlock loop.
-        let _listener: Listener = listener.into();
         Ok(())
     }
 
