@@ -15,32 +15,15 @@ The URI scheme bindings have been heavily inspired by how [Docker Engine] specif
 
 [Docker Engine]: https://docs.docker.com/desktop/faqs/general/#how-do-i-connect-to-the-remote-docker-engine-api
 
-## Supported schemes
-
-Currently the crate supports parsing strings of the following formats:
-
-- `tcp://ip:port` (e.g. `tcp://127.0.0.1:8080`) - TCP sockets,
-- `unix://path` (e.g. `unix:///run/user/1000/test.sock`) - Unix domain sockets, not available on Windows through the `std` right now (see [#271] and [#56533]),
-- `fd://` - socket activation protocol (returns a Unix domain socket):
-  - `fd://` - take the single socket from systemd (equivalent of `fd://3` but fails if more sockets have been passed) *listener only*,
-  - `fd://<number>` - use an exact number as a file descriptor,
-  - `fd://<socket-name>` - use socket activation by name, *listener only*,
-- `npipe://<path>` (e.g. `npipe://test`) for Windows Named Pipes (translates to `\\.\pipe\test`).
-
-[#271]: https://github.com/rust-lang/libs-team/issues/271
-[#56533]: https://github.com/rust-lang/rust/issues/56533
-
-## Examples
-
-### Simple parsing
-
 ```rust
 use service_binding::{Binding, Listener};
 
 let host = "tcp://127.0.0.1:8080"; // or "unix:///tmp/socket"
 
+// parse the URI into a Binding
 let binding: Binding = host.parse().unwrap();
 
+// convert the binding into a Listener
 match binding.try_into().unwrap() {
     #[cfg(unix)]
     Listener::Unix(listener) => {
@@ -55,12 +38,30 @@ match binding.try_into().unwrap() {
 }
 ```
 
-### Web server
+## Supported schemes
 
-The following example uses `clap` and `actix-web` and makes it
-possible to run the server using any combination of Unix domain
-sockets (including systemd socket activation) and regular TCP socket
-bound to a TCP port:
+| URI format         | Example | Description         | Binding | Listener / Stream                     |
+| ------------ | ---------------- | -------------------------- | ---- | --- |
+| `tcp://ip:port` | `tcp://127.0.0.1:8080` | TCP IP address | `Sockets` | `Tcp`  |
+| `tcp://address:port`   |`tcp://localhost:8080`   | Hostname with address resolution [^1] | `Sockets` | `Tcp` |
+| `unix://path` | `unix:///run/user/1000/test.sock` | Unix domain sockets [^2] | `FilePath` | `Unix` |
+| `fd://` | `fd://` | systemd first socket activation [^3][^4] | `FileDescriptor` | `Unix` |
+| `fd://<number>` | `fd://3` | exact number file descriptor | `FileDescriptor` | `Unix` |
+| `fd://<socket-name>` | `fd://http` | socket activation by name [^4] | `FileDescriptor` | `Unix` |
+| `npipe://<name>` | `npipe://agent` | Windows Named Pipe [^5] | `NamedPipe` | `NamedPipe` |
+
+[^1]: binds to the first address that succeeds (see [`TcpListener::bind`](https://doc.rust-lang.org/std/net/struct.TcpListener.html#method.bind))
+[^2]: not available on Windows through the `std` right now (see [#271] and [#56533])
+[^3]: equivalent of `fd://3` but fails if more sockets have been passed
+[^4]: *listener only*
+[^5]: translates to `\\.\pipe\test`
+
+[#271]: https://github.com/rust-lang/libs-team/issues/271
+[#56533]: https://github.com/rust-lang/rust/issues/56533
+
+## Example
+
+The following example uses `clap` and `actix-web` and makes it possible to run the server using any combination of Unix domain sockets (including systemd socket activation) and regular TCP socket bound to a TCP port:
 
 ```rust,no_run
 use actix_web::{web, App, HttpServer, Responder};
@@ -99,14 +100,11 @@ async fn main() -> std::io::Result<()> {
 
 ## systemd Socket Activation
 
-This crate also supports systemd's [Socket Activation][]. If the
-argument to be parsed is `fd://` the `Listener` object returned will
-be a `Unix` variant containing the listener provided by systemd.
+This crate also supports systemd's [Socket Activation][]. If the argument to be parsed is `fd://` the `Listener` object returned will be a `Unix` variant containing the listener provided by systemd.
 
 [Socket Activation]: https://0pointer.de/blog/projects/socket-activation.html
 
-For example the following file defines a socket unit:
-`~/.config/systemd/user/app.socket`:
+For example the following file defines a socket unit: `~/.config/systemd/user/app.socket`:
 
 ```ini
 [Socket]
@@ -117,10 +115,7 @@ FileDescriptorName=service-name
 WantedBy=sockets.target
 ```
 
-When enabled it will create a new socket file in `$XDG_RUNTIME_DIR`
-directory. When this socket is connected to systemd will start the
-service; `fd://` reads the correct systemd environment variable and
-returns the Unix domain socket.
+When enabled it will create a new socket file in `$XDG_RUNTIME_DIR` directory. When this socket is connected to systemd will start the service; `fd://` reads the correct systemd environment variable and returns the Unix domain socket.
 
 The service unit file `~/.config/systemd/user/app.service`:
 
@@ -129,18 +124,15 @@ The service unit file `~/.config/systemd/user/app.service`:
 ExecStart=/usr/bin/app -H fd://
 ```
 
-Since the socket is named (`FileDescriptorName=service-name`) it can
-also be selected using its explicit name: `fd://service-name`.
+Since the socket is named (`FileDescriptorName=service-name`) it can also be selected using its explicit name: `fd://service-name`.
 
 ## launchd Socket Activation
 
-On macOS [launchd socket activation][LSA] is also available although the socket
-needs to be explicitly named through the `fd://socket-name` syntax.
+On macOS [launchd socket activation][LSA] is also available although the socket needs to be explicitly named through the `fd://socket-name` syntax.
 
 [LSA]: https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html
 
-The corresponding `plist` file (which can be placed in `~/Library/LaunchAgents`
-and loaded via `launchctl load ~/Library/LaunchAgents/service.plist`):
+The corresponding `plist` file (which can be placed in `~/Library/LaunchAgents` and loaded via `launchctl load ~/Library/LaunchAgents/service.plist`):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -195,7 +187,4 @@ at your option.
 
 ### Contribution
 
-Unless you explicitly state otherwise, any contribution intentionally
-submitted for inclusion in this crate by you, as defined in the
-Apache-2.0 license, shall be dual licensed as above, without any
-additional terms or conditions.
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this crate by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
