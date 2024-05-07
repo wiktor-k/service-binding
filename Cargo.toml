@@ -16,6 +16,6 @@ raunch = "1"
 [dev-dependencies]
 actix-web = { version = "4", default-features = false, features = ["macros"] }
 clap = { version = "4", features = ["derive", "env"] }
-serial_test = "3.0.0"
+serial_test = "3.1.1"
 tempfile = "3.10.1"
 testresult = "0.4.0"
