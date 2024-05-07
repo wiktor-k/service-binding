@@ -20,19 +20,23 @@ const SD_LISTEN_FDS_START: i32 = 3;
 ///
 /// # Examples
 ///
+/// Note that since the `tcp` protocol can use an address the `Sockets`
+/// binding will contain all IP addresses that the address resolves to.
+///
 /// ```
 /// # use service_binding::Binding;
-/// let binding = "tcp://127.0.0.1:8080".try_into().unwrap();
+/// # fn main() -> testresult::TestResult {
+/// let binding = "tcp://127.0.0.1:8080".try_into()?;
 /// assert_eq!(
 ///     Binding::Sockets(vec![([127, 0, 0, 1], 8080).into()]),
 ///     binding
 /// );
+/// # Ok(()) }
 /// ```
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Binding {
     /// The service should be bound to this explicit, opened file
-    /// descriptor.  This mechanism is used by systemd socket
-    /// activation.
+    /// descriptor. This mechanism is used by the socket activation.
     FileDescriptor(i32),
 
     /// The service should be bound to a Unix domain socket file under
@@ -68,9 +72,11 @@ impl From<SocketAddr> for Binding {
 ///
 /// ```
 /// # use service_binding::{Binding, Listener};
-/// let binding: Binding = "tcp://127.0.0.1:8080".parse().unwrap();
-/// let listener = binding.try_into().unwrap();
+/// # fn main() -> testresult::TestResult {
+/// let binding: Binding = "tcp://127.0.0.1:8080".parse()?;
+/// let listener = binding.try_into()?;
 /// assert!(matches!(listener, Listener::Tcp(_)));
+/// # Ok(()) }
 /// ```
 #[derive(Debug)]
 pub enum Listener {
@@ -121,9 +127,11 @@ impl From<TcpListener> for Listener {
 ///
 /// ```no_run
 /// # use service_binding::{Binding, Stream};
-/// let binding: Binding = "tcp://127.0.0.1:8080".parse().unwrap();
-/// let stream = binding.try_into().unwrap();
+/// # fn main() -> testresult::TestResult {
+/// let binding: Binding = "tcp://127.0.0.1:8080".parse()?;
+/// let stream = binding.try_into()?;
 /// assert!(matches!(stream, Stream::Tcp(_)));
+/// # Ok(()) }
 /// ```
 #[derive(Debug)]
 pub enum Stream {

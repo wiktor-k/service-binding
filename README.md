@@ -20,6 +20,7 @@ The URI scheme bindings have been heavily inspired by how [Docker Engine] specif
 Currently the crate supports parsing strings of the following formats:
 
 - `tcp://ip:port` (e.g. `tcp://127.0.0.1:8080`) - TCP sockets,
+- `tcp://address:port` (e.g `tcp://localhost:8080`) - TCP sockets with address resolution, note that this binds to the first address that succeeds (see [`TcpListener::bind`](https://doc.rust-lang.org/std/net/struct.TcpListener.html#method.bind)),
 - `unix://path` (e.g. `unix:///run/user/1000/test.sock`) - Unix domain sockets, not available on Windows through the `std` right now (see [#271] and [#56533]),
 - `fd://` - socket activation protocol (returns a Unix domain socket):
   - `fd://` - take the single socket from systemd (equivalent of `fd://3` but fails if more sockets have been passed) *listener only*,
@@ -195,7 +196,4 @@ at your option.
 
 ### Contribution
 
-Unless you explicitly state otherwise, any contribution intentionally
-submitted for inclusion in this crate by you, as defined in the
-Apache-2.0 license, shall be dual licensed as above, without any
-additional terms or conditions.
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this crate by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
