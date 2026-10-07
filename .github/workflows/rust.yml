@@ -17,7 +17,7 @@ jobs:
     name: Check spelling
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: wiktor-k/setup-just@v1
       - run: sudo apt-get install -y codespell
       - name: Check spelling
@@ -33,7 +33,7 @@ jobs:
         - os: windows-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: wiktor-k/setup-just@v1
       - run: rustup install nightly
       - run: rustup component add rustfmt --toolchain nightly
@@ -50,7 +50,7 @@ jobs:
         - os: windows-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: wiktor-k/setup-just@v1
       - name: Run unit tests
         run: just tests
@@ -59,9 +59,9 @@ jobs:
     name: Check dependencies
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Run dependencies check
-        uses: EmbarkStudios/cargo-deny-action@v1
+        uses: EmbarkStudios/cargo-deny-action@v2
 
   lints:
     name: Clippy lints
@@ -73,7 +73,7 @@ jobs:
         - os: windows-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: wiktor-k/setup-just@v1
       - name: Check for lints
         run: just lints
