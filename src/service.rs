@@ -229,7 +229,7 @@ impl<'a> std::convert::TryFrom<&'a str> for Binding {
         } else if let Some(addr) = s.strip_prefix("tcp://") {
             match addr.to_socket_addrs() {
                 Ok(addrs) => Ok(Binding::Sockets(addrs.collect())),
-                Err(err) => return Err(Error::BadAddress(err)),
+                Err(err) => Err(Error::BadAddress(err)),
             }
         } else if s.starts_with(r"\\") {
             Ok(Binding::NamedPipe(s.into()))
@@ -267,10 +267,7 @@ impl TryFrom<Binding> for Listener {
             Binding::Sockets(sockets) => Ok(std::net::TcpListener::bind(&*sockets)?.into()),
             Binding::NamedPipe(pipe) => Ok(Listener::NamedPipe(pipe)),
             #[cfg(not(unix))]
-            _ => Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                Error::UnsupportedScheme,
-            )),
+            _ => Err(std::io::Error::other(Error::UnsupportedScheme)),
         }
     }
 }
@@ -291,10 +288,7 @@ impl TryFrom<Binding> for Stream {
             Binding::Sockets(sockets) => Ok(std::net::TcpStream::connect(&*sockets)?.into()),
             Binding::NamedPipe(pipe) => Ok(Self::NamedPipe(pipe)),
             #[cfg(not(unix))]
-            _ => Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                Error::UnsupportedScheme,
-            )),
+            _ => Err(std::io::Error::other(Error::UnsupportedScheme)),
         }
     }
 }
