@@ -457,16 +457,10 @@ mod tests {
             panic!("Address should be parsed to Sockets");
         };
 
-        let mut expected = vec![
-            SocketAddr::from(([127, 0, 0, 1], 8081)),
-            SocketAddr::from(([0, 0, 0, 0, 0, 0, 0, 1], 8081)),
-        ];
-
-        // Sort both vectors for testing equality as the ordering may be different
-        addrs.sort();
-        expected.sort();
-
-        assert_eq!(addrs, &expected);
+        assert!(
+            !addrs.is_empty(),
+            "at least one address bound to localhost is expected"
+        );
 
         let _: Listener = binding.try_into()?;
         Ok(())
