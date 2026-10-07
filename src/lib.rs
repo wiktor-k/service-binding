@@ -51,6 +51,6 @@ mod tests {
 
     #[test]
     fn test_display() {
-        format!("{}", Error::UnsupportedScheme);
+        let _ = format!("{}", Error::UnsupportedScheme);
     }
 }
